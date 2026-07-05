@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>C盘空间监听系统</title>
+    <link rel="stylesheet" href="./styles.css?v=20260705-cs6" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <div class="brand-mark">C</div>
+          <div>
+            <div class="brand-name">SpaceWatch</div>
+            <div class="brand-subtitle">C盘监听</div>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" type="button" data-view="dashboard" data-title="C盘空间概览">
+            <i data-lucide="layout-dashboard"></i>
+            <span>概览</span>
+          </button>
+          <button class="nav-item" type="button" data-view="files" data-title="新增文件">
+            <i data-lucide="file-search"></i>
+            <span>新增文件</span>
+          </button>
+          <button class="nav-item" type="button" data-view="cleanup" data-title="清理建议">
+            <i data-lucide="sparkles"></i>
+            <span>清理建议</span>
+          </button>
+          <button class="nav-item" type="button" data-view="history" data-title="历史记录">
+            <i data-lucide="history"></i>
+            <span>历史记录</span>
+          </button>
+          <button class="nav-item" type="button" data-view="settings" data-title="设置">
+            <i data-lucide="sliders-horizontal"></i>
+            <span>设置</span>
+          </button>
+        </nav>
+
+        <div class="scan-status">
+          <div class="scan-row">
+            <span>监听状态</span>
+            <strong id="runtimeStatus">运行中</strong>
+          </div>
+          <div class="scan-progress" aria-label="扫描进度">
+            <span></span>
+          </div>
+          <div class="scan-foot">上次扫描 14:32</div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Windows C/S 本地系统</p>
+            <h1 id="pageTitle">C盘空间概览</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="刷新页面数据" title="刷新页面数据" id="refreshButton">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+            <button class="secondary-button" type="button" id="exportReportButton">
+              <i data-lucide="file-down"></i>
+              <span>导出报告</span>
+            </button>
+            <button class="primary-button" type="button" id="scanButton">
+              <i data-lucide="radar"></i>
+              <span>立即扫描磁盘</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="page-view active" data-page="dashboard">
+        <section class="summary-grid" aria-label="C盘摘要">
+          <article class="metric-card">
+            <div class="metric-icon tone-green"><i data-lucide="hard-drive"></i></div>
+            <div>
+              <p>当前剩余</p>
+              <strong id="metricFree">18.6 GB</strong>
+              <span id="metricTotal">总容量 237 GB</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon tone-red"><i data-lucide="trending-down"></i></div>
+            <div>
+              <p>今日减少</p>
+              <strong id="metricToday">3.4 GB</strong>
+              <span id="metricTodayHint">主要来自日志与缓存</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon tone-amber"><i data-lucide="trash-2"></i></div>
+            <div>
+              <p>低风险可清理</p>
+              <strong id="metricSafe">9.8 GB</strong>
+              <span>删除前进入回收站</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon tone-blue"><i data-lucide="bell-ring"></i></div>
+            <div>
+              <p>异常提醒</p>
+              <strong id="metricAlerts">2 条</strong>
+              <span id="metricAlertsHint">1小时减少超过阈值</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel trend-panel">
+            <div class="panel-header">
+              <div>
+                <h2>空间变化</h2>
+                <p>最近 24 小时剩余空间</p>
+              </div>
+              <div class="segmented" role="tablist" aria-label="趋势范围">
+                <button class="active" type="button" data-chart-range="1">24小时</button>
+                <button type="button" data-chart-range="7">7天</button>
+                <button type="button" data-chart-range="30">30天</button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg class="area-chart" viewBox="0 0 720 260" role="img" aria-label="C盘空间变化折线图">
+                <defs>
+                  <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#2f8f6b" stop-opacity=".22" />
+                    <stop offset="100%" stop-color="#2f8f6b" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <g class="grid-lines">
+                  <line x1="32" y1="40" x2="700" y2="40" />
+                  <line x1="32" y1="100" x2="700" y2="100" />
+                  <line x1="32" y1="160" x2="700" y2="160" />
+                  <line x1="32" y1="220" x2="700" y2="220" />
+                </g>
+                <path class="chart-fill" id="chartFillPath" d="" />
+                <path class="chart-line" id="chartLinePath" d="" />
+                <g id="chartPoints"></g>
+              </svg>
+              <div class="chart-labels" id="chartLabels">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>现在</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="panel alert-panel">
+            <div class="panel-header compact">
+              <h2>风险提示</h2>
+              <button class="icon-button" type="button" aria-label="更多" title="更多">
+                <i data-lucide="more-horizontal"></i>
+              </button>
+            </div>
+            <div class="alert-list" id="alertList">
+              <div class="alert-item high">
+                <i data-lucide="triangle-alert"></i>
+                <div>
+                  <strong>日志目录持续增长</strong>
+                  <span>C:\ProgramData\AppLogs 今日新增 1.7GB</span>
+                </div>
+              </div>
+              <div class="alert-item medium">
+                <i data-lucide="clock-3"></i>
+                <div>
+                  <strong>临时文件堆积</strong>
+                  <span>Temp 目录 7 天未清理，预计释放 2.4GB</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="cleanup-section">
+          <div class="section-header">
+            <div>
+              <h2>清理建议</h2>
+              <p>按风险分级，默认只展示安全项</p>
+            </div>
+            <div class="filter-tabs" role="tablist" aria-label="清理分类">
+              <button class="active" type="button" data-filter="safe">可直接删除</button>
+              <button type="button" data-filter="review">确认后删除</button>
+              <button type="button" data-filter="protect">不建议删除</button>
+            </div>
+          </div>
+
+          <div class="cleanup-list" id="cleanupList">
+            <article class="cleanup-card" data-type="safe">
+              <div class="file-type safe"><i data-lucide="shield-check"></i></div>
+              <div class="cleanup-content">
+                <h3>系统临时文件</h3>
+                <p>C:\Users\Local\AppData\Temp · 最近生成 13:58</p>
+              </div>
+              <div class="cleanup-size">2.4 GB</div>
+              <button class="icon-button" type="button" aria-label="清理系统临时文件" title="清理">
+                <i data-lucide="trash"></i>
+              </button>
+            </article>
+
+            <article class="cleanup-card" data-type="safe">
+              <div class="file-type safe"><i data-lucide="shield-check"></i></div>
+              <div class="cleanup-content">
+                <h3>Windows 更新残留</h3>
+                <p>C:\Windows\SoftwareDistribution\Download · 生成于 2026-07-03</p>
+              </div>
+              <div class="cleanup-size">4.1 GB</div>
+              <button class="icon-button" type="button" aria-label="清理更新残留" title="清理">
+                <i data-lucide="trash"></i>
+              </button>
+            </article>
+
+            <article class="cleanup-card" data-type="review">
+              <div class="file-type review"><i data-lucide="circle-help"></i></div>
+              <div class="cleanup-content">
+                <h3>下载目录安装包</h3>
+                <p>C:\Users\Downloads · 30 天未打开</p>
+              </div>
+              <div class="cleanup-size">6.7 GB</div>
+              <button class="icon-button" type="button" aria-label="查看安装包" title="查看">
+                <i data-lucide="eye"></i>
+              </button>
+            </article>
+
+            <article class="cleanup-card" data-type="protect">
+              <div class="file-type protect"><i data-lucide="lock-keyhole"></i></div>
+              <div class="cleanup-content">
+                <h3>程序运行文件</h3>
+                <p>C:\Program Files · 系统保护目录</p>
+              </div>
+              <div class="cleanup-size">12.5 GB</div>
+              <button class="icon-button" type="button" aria-label="锁定" title="锁定">
+                <i data-lucide="lock"></i>
+              </button>
+            </article>
+          </div>
+        </section>
+
+        <section class="table-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>最近新增大文件</h2>
+                <p>按生成时间和大小排序</p>
+              </div>
+              <button class="secondary-button tight" type="button" id="overviewOpenLocationButton">
+                <i data-lucide="folder-open"></i>
+                <span>打开位置</span>
+              </button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>文件</th>
+                    <th>大小</th>
+                    <th>生成时间</th>
+                    <th>来源判断</th>
+                  </tr>
+                </thead>
+                <tbody id="overviewFilesBody">
+                  <tr>
+                    <td>app-2026-07-04.log</td>
+                    <td>1.2 GB</td>
+                    <td>今天 14:08</td>
+                    <td><span class="badge warning">日志</span></td>
+                  </tr>
+                  <tr>
+                    <td>Chrome Cache Data</td>
+                    <td>680 MB</td>
+                    <td>今天 11:27</td>
+                    <td><span class="badge success">缓存</span></td>
+                  </tr>
+                  <tr>
+                    <td>meeting_record.zip</td>
+                    <td>2.8 GB</td>
+                    <td>昨天 20:42</td>
+                    <td><span class="badge neutral">下载</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>目录占用排行</h2>
+                <p>显示增长最快的位置</p>
+              </div>
+            </div>
+            <div class="rank-list" id="rankList">
+              <div class="rank-item">
+                <div>
+                  <strong>Users</strong>
+                  <span>C:\Users</span>
+                </div>
+                <em>86.4 GB</em>
+              </div>
+              <div class="rank-bar"><span style="width: 92%"></span></div>
+              <div class="rank-item">
+                <div>
+                  <strong>ProgramData</strong>
+                  <span>C:\ProgramData</span>
+                </div>
+                <em>34.8 GB</em>
+              </div>
+              <div class="rank-bar"><span style="width: 54%"></span></div>
+              <div class="rank-item">
+                <div>
+                  <strong>Windows</strong>
+                  <span>C:\Windows</span>
+                </div>
+                <em>29.2 GB</em>
+              </div>
+              <div class="rank-bar"><span style="width: 47%"></span></div>
+            </div>
+          </div>
+        </section>
+        </section>
+
+        <section class="page-view" data-page="files">
+          <section class="toolbar-panel">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="search" placeholder="搜索文件名、路径或来源" aria-label="搜索新增文件" />
+            </div>
+            <div class="toolbar-actions">
+              <div class="segmented" role="tablist" aria-label="新增文件时间范围">
+                <button class="active" type="button">今天</button>
+                <button type="button">7天</button>
+                <button type="button">30天</button>
+              </div>
+              <button class="secondary-button" type="button" id="fileFilterButton">
+                <i data-lucide="list-filter"></i>
+                <span>筛选</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="summary-grid" aria-label="新增文件摘要">
+            <article class="metric-card">
+              <div class="metric-icon tone-blue"><i data-lucide="file-plus-2"></i></div>
+              <div>
+                <p>本次扫描今日新增</p>
+                <strong id="filesTodayCount">0 个</strong>
+                <span id="filesTodaySize">合计 0 B</span>
+              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-icon tone-red"><i data-lucide="file-warning"></i></div>
+              <div>
+                <p>异常大文件</p>
+                <strong id="filesLargeCount">0 个</strong>
+                <span id="filesLargeHint">单文件超过 100 MB</span>
+              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-icon tone-amber"><i data-lucide="folder-clock"></i></div>
+              <div>
+                <p>增长目录</p>
+                <strong id="filesGrowingCount">0 个</strong>
+                <span id="filesGrowingHint">对比上次扫描</span>
+              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-icon tone-green"><i data-lucide="sparkle"></i></div>
+              <div>
+                <p>可解释来源</p>
+                <strong id="filesExplainPercent">0%</strong>
+                <span id="filesExplainHint">按来源规则识别</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="split-layout">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>新增文件明细</h2>
+                  <p>展示生成时间、修改时间、来源判断和处理建议</p>
+                </div>
+              <button class="secondary-button tight" type="button" id="filesColumnButton">
+                <i data-lucide="columns-3"></i>
+                <span>列设置</span>
+                </button>
+              </div>
+              <div class="table-wrap">
+                <table class="wide-table">
+                  <thead>
+                    <tr>
+                      <th>文件</th>
+                      <th>路径</th>
+                      <th>大小</th>
+                      <th>生成时间</th>
+                      <th>来源</th>
+                      <th>建议</th>
+                    </tr>
+                  </thead>
+                  <tbody id="filesTableBody">
+                    <tr>
+                      <td>app-2026-07-04.log</td>
+                      <td>C:\ProgramData\AppLogs</td>
+                      <td>1.2 GB</td>
+                      <td>今天 14:08</td>
+                      <td><span class="badge warning">日志</span></td>
+                      <td>确认后删除</td>
+                    </tr>
+                    <tr>
+                      <td>CrashDump.dmp</td>
+                      <td>C:\Windows\Minidump</td>
+                      <td>860 MB</td>
+                      <td>今天 12:19</td>
+                      <td><span class="badge success">转储</span></td>
+                      <td>可直接删除</td>
+                    </tr>
+                    <tr>
+                      <td>installer-cache.bin</td>
+                      <td>C:\Users\Local\AppData\Temp</td>
+                      <td>740 MB</td>
+                      <td>今天 10:45</td>
+                      <td><span class="badge success">临时</span></td>
+                      <td>可直接删除</td>
+                    </tr>
+                    <tr>
+                      <td>project_video.mp4</td>
+                      <td>C:\Users\Downloads</td>
+                      <td>2.1 GB</td>
+                      <td>昨天 21:33</td>
+                      <td><span class="badge neutral">下载</span></td>
+                      <td>确认后删除</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-header compact">
+                <h2>来源占比</h2>
+              </div>
+              <div class="source-list" id="sourceList">
+                <div class="source-item">
+                  <span>日志文件</span>
+                  <strong>2.3 GB</strong>
+                  <div class="rank-bar"><span style="width: 82%"></span></div>
+                </div>
+                <div class="source-item">
+                  <span>下载文件</span>
+                  <strong>2.1 GB</strong>
+                  <div class="rank-bar"><span style="width: 74%"></span></div>
+                </div>
+                <div class="source-item">
+                  <span>浏览器缓存</span>
+                  <strong>980 MB</strong>
+                  <div class="rank-bar"><span style="width: 42%"></span></div>
+                </div>
+                <div class="source-item">
+                  <span>系统临时文件</span>
+                  <strong>620 MB</strong>
+                  <div class="rank-bar"><span style="width: 28%"></span></div>
+                </div>
+              </div>
+            </aside>
+          </section>
+        </section>
+
+        <section class="page-view" data-page="cleanup">
+          <section class="cleanup-hero">
+            <div>
+              <p class="eyebrow">预计释放空间</p>
+              <strong id="cleanupHeroTotal">0 B</strong>
+              <span id="cleanupHeroSafe">其中 0 B 属于低风险清理项</span>
+            </div>
+            <div class="cleanup-actions">
+              <button class="secondary-button" type="button" id="moveToRecycleButton">
+                <i data-lucide="archive-restore"></i>
+                <span>仅移入回收站</span>
+              </button>
+              <button class="primary-button danger-button" type="button" id="deleteSelectedButton">
+                <i data-lucide="trash-2"></i>
+                <span>直接删除选中项</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="cleanup-columns">
+            <div class="cleanup-group">
+              <div class="group-title">
+                <i data-lucide="shield-check"></i>
+                <div>
+                  <h2>可直接删除</h2>
+                  <p>低风险项，默认进入回收站</p>
+                </div>
+              </div>
+              <div class="check-list" id="safeCleanupRows">
+                <label class="check-row">
+                  <input type="checkbox" checked />
+                  <span>系统临时文件</span>
+                  <strong>2.4 GB</strong>
+                </label>
+                <label class="check-row">
+                  <input type="checkbox" checked />
+                  <span>Windows 更新残留</span>
+                  <strong>4.1 GB</strong>
+                </label>
+                <label class="check-row">
+                  <input type="checkbox" checked />
+                  <span>崩溃转储文件</span>
+                  <strong>860 MB</strong>
+                </label>
+              </div>
+            </div>
+
+            <div class="cleanup-group">
+              <div class="group-title">
+                <i data-lucide="circle-help"></i>
+                <div>
+                  <h2>确认后删除</h2>
+                  <p>可能包含用户文件，需要逐项确认</p>
+                </div>
+              </div>
+              <div class="check-list" id="reviewCleanupRows">
+                <label class="check-row">
+                  <input type="checkbox" />
+                  <span>下载目录安装包</span>
+                  <strong>6.7 GB</strong>
+                </label>
+                <label class="check-row">
+                  <input type="checkbox" />
+                  <span>聊天软件接收文件</span>
+                  <strong>3.2 GB</strong>
+                </label>
+                <label class="check-row">
+                  <input type="checkbox" />
+                  <span>30 天未访问视频</span>
+                  <strong>2.1 GB</strong>
+                </label>
+              </div>
+            </div>
+
+            <div class="cleanup-group">
+              <div class="group-title">
+                <i data-lucide="lock-keyhole"></i>
+                <div>
+                  <h2>不建议删除</h2>
+                  <p>系统或程序运行依赖目录</p>
+                </div>
+              </div>
+              <div id="protectedCleanupRows">
+                <div class="protect-row">
+                  <span>C:\Windows\System32</span>
+                  <strong>已保护</strong>
+                </div>
+                <div class="protect-row">
+                  <span>C:\Program Files</span>
+                  <strong>已保护</strong>
+                </div>
+                <div class="protect-row">
+                  <span>用户配置目录</span>
+                  <strong>已保护</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>删除前确认清单</h2>
+                <p>所有项目都会记录路径、时间和释放空间</p>
+              </div>
+              <button class="secondary-button tight" type="button" id="previewReportButton">
+                <i data-lucide="clipboard-list"></i>
+                <span>预览报告</span>
+              </button>
+            </div>
+            <div class="confirmation-strip">
+              <div>
+                <strong id="confirmCount">将清理 3 项</strong>
+                <span id="confirmSize">预计释放 7.36 GB</span>
+              </div>
+              <div>
+                <strong>操作方式</strong>
+                <span>优先移入回收站</span>
+              </div>
+              <div>
+                <strong>风险等级</strong>
+                <span>低风险</span>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view" data-page="history">
+          <section class="content-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>容量历史</h2>
+                  <p>最近 7 天 C盘剩余空间变化</p>
+                </div>
+                <div class="segmented" role="tablist" aria-label="历史范围">
+                  <button class="active" type="button">7天</button>
+                  <button type="button">30天</button>
+                  <button type="button">90天</button>
+                </div>
+              </div>
+              <div class="history-bars" aria-label="历史空间条形图">
+                <div><span style="height: 44%"></span><em>6/28</em></div>
+                <div><span style="height: 52%"></span><em>6/29</em></div>
+                <div><span style="height: 50%"></span><em>6/30</em></div>
+                <div><span style="height: 61%"></span><em>7/1</em></div>
+                <div><span style="height: 68%"></span><em>7/2</em></div>
+                <div><span style="height: 74%"></span><em>7/3</em></div>
+                <div><span style="height: 86%"></span><em>今天</em></div>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-header compact">
+                <h2>历史摘要</h2>
+              </div>
+              <div class="stat-list" id="historyStats">
+                <div><span>7天减少</span><strong>14.8 GB</strong></div>
+                <div><span>已释放</span><strong>8.2 GB</strong></div>
+                <div><span>异常事件</span><strong>5 次</strong></div>
+                <div><span>最大增长目录</span><strong>AppLogs</strong></div>
+              </div>
+            </aside>
+          </section>
+
+          <section class="timeline-layout">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>空间变化时间线</h2>
+                  <p>用于定位 C盘空间突然变小的时间点</p>
+                </div>
+              </div>
+              <div class="timeline" id="historyTimeline">
+                <div class="timeline-item">
+                  <time>今天 14:08</time>
+                  <div>
+                    <strong>C盘减少 1.2 GB</strong>
+                    <span>新增 app-2026-07-04.log，来源判断为日志</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <time>今天 12:19</time>
+                  <div>
+                    <strong>发现崩溃转储文件</strong>
+                    <span>C:\Windows\Minidump 新增 860 MB</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <time>昨天 20:42</time>
+                  <div>
+                    <strong>下载目录新增压缩包</strong>
+                    <span>meeting_record.zip 占用 2.8 GB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>清理操作记录</h2>
+                  <p>记录每次清理的项目和释放空间</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>操作</th>
+                      <th>释放</th>
+                      <th>方式</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cleanupHistoryBody">
+                    <tr>
+                      <td>今天 09:18</td>
+                      <td>清理浏览器缓存</td>
+                      <td>1.1 GB</td>
+                      <td>回收站</td>
+                    </tr>
+                    <tr>
+                      <td>昨天 17:30</td>
+                      <td>清理临时文件</td>
+                      <td>2.6 GB</td>
+                      <td>回收站</td>
+                    </tr>
+                    <tr>
+                      <td>7/2 11:06</td>
+                      <td>删除旧安装包</td>
+                      <td>4.5 GB</td>
+                      <td>确认删除</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="page-view" data-page="settings">
+          <section class="settings-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>监听策略</h2>
+                  <p>控制扫描频率和异常提醒阈值</p>
+                </div>
+              </div>
+              <div class="settings-list">
+                <label class="setting-row">
+                  <span>自动监听 C盘</span>
+                  <input type="checkbox" checked id="settingAutoWatch" />
+                </label>
+                <label class="setting-row">
+                  <span>扫描频率</span>
+                  <select id="settingScanInterval">
+                    <option>每 30 分钟</option>
+                    <option>每 1 小时</option>
+                    <option>每天一次</option>
+                  </select>
+                </label>
+                <label class="setting-row">
+                  <span>低空间提醒</span>
+                  <input type="number" value="20" min="1" id="settingLowSpace" />
+                </label>
+                <label class="setting-row">
+                  <span>异常减少阈值</span>
+                  <input type="number" value="2" min="1" id="settingAbnormalDrop" />
+                </label>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>清理安全</h2>
+                  <p>删除前确认和系统目录保护</p>
+                </div>
+              </div>
+              <div class="settings-list">
+                <label class="setting-row">
+                  <span>默认移入回收站</span>
+                  <input type="checkbox" checked id="settingDefaultRecycle" />
+                </label>
+                <label class="setting-row">
+                  <span>删除前二次确认</span>
+                  <input type="checkbox" checked id="settingConfirmDelete" />
+                </label>
+                <label class="setting-row">
+                  <span>保护系统目录</span>
+                  <input type="checkbox" checked id="settingProtectSystem" />
+                </label>
+                <label class="setting-row">
+                  <span>保留清理日志</span>
+                  <select id="settingRetentionDays">
+                    <option>180 天</option>
+                    <option>90 天</option>
+                    <option>永久保留</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>重点监听目录</h2>
+                  <p>优先追踪容易产生大文件的位置</p>
+                </div>
+                <button class="secondary-button tight" type="button" id="addWatchedPathButton">
+                  <i data-lucide="plus"></i>
+                  <span>添加目录</span>
+                </button>
+              </div>
+              <div class="path-list" id="watchedPathList">
+                <div><span>C:\Users\Downloads</span><button class="icon-button" type="button" aria-label="删除"><i data-lucide="x"></i></button></div>
+                <div><span>C:\Users\Local\AppData\Temp</span><button class="icon-button" type="button" aria-label="删除"><i data-lucide="x"></i></button></div>
+                <div><span>C:\ProgramData\AppLogs</span><button class="icon-button" type="button" aria-label="删除"><i data-lucide="x"></i></button></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>保护目录</h2>
+                  <p>这些位置不会给出直接删除建议</p>
+                </div>
+                <button class="secondary-button tight" type="button" id="addProtectedPathButton">
+                  <i data-lucide="shield-plus"></i>
+                  <span>添加保护</span>
+                </button>
+              </div>
+              <div class="path-list" id="protectedPathList">
+                <div><span>C:\Windows</span><strong>系统</strong></div>
+                <div><span>C:\Program Files</span><strong>程序</strong></div>
+                <div><span>C:\Users\*\AppData\Roaming</span><strong>配置</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>数据存储</h2>
+                <p>当前版本使用本地文件保存配置、扫描历史和清理记录</p>
+              </div>
+            </div>
+            <div class="stat-list" id="storageInfo">
+              <div><span>存储类型</span><strong>本地 JSON 文件</strong></div>
+              <div><span>数据库</span><strong>未接入</strong></div>
+              <div><span>配置文件</span><strong>加载中</strong></div>
+              <div><span>历史记录</span><strong>加载中</strong></div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="./app.js?v=20260705-cs6"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "spacewatch-cs",
+  "version": "0.1.0",
+  "description": "C盘空间监听与清理建议 C/S 系统",
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "check": "node --check scanner.js && node --check server.js && node --check app.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
