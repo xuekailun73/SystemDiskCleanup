@@ -14,5 +14,8 @@ dist/
 build/
 coverage/
 
+installer/build/
+installer/output/
+
 Thumbs.db
 Desktop.ini
